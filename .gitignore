@@ -3,3 +3,5 @@ out
 .env
 assets/
 samples/
+tmp/main
+tmp/build-errors.log
