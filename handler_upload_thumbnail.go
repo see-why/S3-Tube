@@ -1,15 +1,45 @@
 package main
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/database"
 	"github.com/google/uuid"
 )
+
+func (cfg *apiConfig) saveThumbnailToFile(filePath string, thumb []byte) error {
+	// Ensure the directory exists
+	dir := filepath.Join("assets")
+	fmt.Printf("Creating directory: %s\n", dir)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	// Write the thumbnail data to file
+	if err := os.WriteFile(filepath.Join(dir, filepath.Base(filePath)), thumb, 0644); err != nil {
+		return fmt.Errorf("failed to write thumbnail file: %w", err)
+	}
+
+	return nil
+}
+
+func getExtensionFromMediaType(mediaType string) string {
+	switch mediaType {
+	case "image/jpeg":
+		return "jpg"
+	case "image/png":
+		return "png"
+	case "image/gif":
+		return "gif"
+	default:
+		return "jpg"
+	}
+}
 
 func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Request) {
 	videoIDString := r.PathValue("videoID")
@@ -70,9 +100,15 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		mediaType: mediaType,
 	}
 
-	imageString := base64.StdEncoding.EncodeToString(thumbnailBytes)
+	filePath := fmt.Sprintf("/assets/%s.%s", videoID, getExtensionFromMediaType(mediaType))
+	err = cfg.saveThumbnailToFile(filePath, thumbnailBytes)
 
-	thumbnailURL := fmt.Sprintf("data;%s;base64;%s", mediaType, imageString)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't save thumbnail", err)
+		return
+	}
+
+	thumbnailURL := fmt.Sprintf("http://localhost:<port>/assets/%s.%s", videoID, getExtensionFromMediaType(mediaType))
 	video.ThumbnailURL = &thumbnailURL
 
 	err = cfg.db.UpdateVideo(video)
