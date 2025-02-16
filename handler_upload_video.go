@@ -57,20 +57,22 @@ func getVideoAspectRatio(filePath string) (string, error) {
 	width := ffprobeOutput.Streams[0].Width
 	height := ffprobeOutput.Streams[0].Height
 
+	fmt.Printf("Width: %d, Height: %d\n", width, height)
+
 	// Calculate the aspect ratio
 	if width == height {
 		return "1:1", nil // Square aspect ratio
-	} else if width > height {
-		if width*9 == height*16 {
-			return "16:9", nil
-		}
-		return "other", nil
-	} else {
-		if height*9 == width*16 {
-			return "9:16", nil
-		}
-		return "other", nil
 	}
+
+	if width/height == 16/9 {
+		return "landscape", nil
+	}
+
+	if width/height == 0 {
+		return "portrait", nil
+	}
+
+	return "other", nil
 }
 
 func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request) {
@@ -151,14 +153,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	switch aspectRatio {
-	case "16:9":
-		aspectRatio = "landscape"
-	case "4:3":
-		aspectRatio = "portrait"
-	default:
-		aspectRatio = "other"
-	}
+	fmt.Println("Aspect ratio:", aspectRatio)
 
 	bytes := make([]byte, 32)
 	_, err = rand.Read(bytes)
@@ -174,7 +169,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		context.TODO(),
 		&s3.PutObjectInput{
 			Bucket:      aws.String(cfg.s3Bucket),
-			Key:         aws.String(fmt.Sprintf("%s%s.mp4", aspectRatio, fileName)),
+			Key:         aws.String(fmt.Sprintf("%s/%s.mp4", aspectRatio, fileName)),
 			Body:        osFile,
 			ContentType: aws.String(mediaType),
 		})
@@ -184,7 +179,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	newUrl := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s.mp4", cfg.s3Bucket, cfg.s3Region, fileName)
+	newUrl := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s/%s.mp4", cfg.s3Bucket, cfg.s3Region, aspectRatio, fileName)
 	videoData.VideoURL = &newUrl
 	err = cfg.db.UpdateVideo(videoData)
 
