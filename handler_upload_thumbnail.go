@@ -1,13 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
@@ -41,6 +44,60 @@ func getExtensionFromMediaType(mediaType string) string {
 		return "gif"
 	default:
 		return "jpg"
+	}
+}
+
+type Stream struct {
+	Width  int `json:"width"`
+	Height int `json:"height"`
+}
+
+type FfprobeOutput struct {
+	Streams []Stream `json:"streams"`
+}
+
+// getVideoAspectRatio retrieves the aspect ratio of a video file
+func getVideoAspectRatio(filePath string) (string, error) {
+	// Prepare the ffprobe command
+	cmd := exec.Command("ffprobe", "-v", "error", "-print_format", "json", "-show_streams", filePath)
+
+	// Set up a buffer to capture the output
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	// Run the command
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("failed to run ffprobe: %w", err)
+	}
+
+	// Unmarshal the JSON output
+	var ffprobeOutput FfprobeOutput
+	if err := json.Unmarshal(out.Bytes(), &ffprobeOutput); err != nil {
+		return "", fmt.Errorf("failed to unmarshal ffprobe output: %w", err)
+	}
+
+	// Check if we have any streams
+	if len(ffprobeOutput.Streams) == 0 {
+		return "", fmt.Errorf("no streams found in video file")
+	}
+
+	// Get the width and height of the first stream
+	width := ffprobeOutput.Streams[0].Width
+	height := ffprobeOutput.Streams[0].Height
+
+	// Calculate the aspect ratio
+	if width == height {
+		return "1:1", nil // Square aspect ratio
+	} else if width > height {
+		if width*9 == height*16 {
+			return "16:9", nil
+		}
+		return "other", nil
+	} else {
+		if height*9 == width*16 {
+			return "9:16", nil
+		}
+		return "other", nil
 	}
 }
 
