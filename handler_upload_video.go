@@ -75,6 +75,17 @@ func getVideoAspectRatio(filePath string) (string, error) {
 	return "other", nil
 }
 
+func processVideoForFastStart(filePath string) (string, error) {
+	outputPath := fmt.Sprintf("%s.processing.mp4", filePath)
+	err := exec.Command("ffmpeg", "-i", filePath, "-c", "copy", "-movflags", "faststart", "-f", "mp4", outputPath).Run()
+
+	if err != nil {
+		return "", fmt.Errorf("failed to process video: %w", err)
+	}
+
+	return outputPath, nil
+}
+
 func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request) {
 	uploadLimt := 1 << 30
 	reader := http.MaxBytesReader(w, r.Body, int64(uploadLimt))
