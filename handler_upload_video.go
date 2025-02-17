@@ -158,7 +158,21 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	aspectRatio, err := getVideoAspectRatio(osFile.Name())
+	processedFilePath, err := processVideoForFastStart(osFile.Name())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't process video", err)
+		return
+	}
+
+	processedFile, err := os.Open(processedFilePath)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't read processed file", err)
+		return
+	}
+
+	defer processedFile.Close()
+
+	aspectRatio, err := getVideoAspectRatio(processedFilePath)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get aspect ratio", err)
 		return
@@ -181,7 +195,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		&s3.PutObjectInput{
 			Bucket:      aws.String(cfg.s3Bucket),
 			Key:         aws.String(fmt.Sprintf("%s/%s.mp4", aspectRatio, fileName)),
-			Body:        osFile,
+			Body:        processedFile,
 			ContentType: aws.String(mediaType),
 		})
 
