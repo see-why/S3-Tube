@@ -1,90 +1,21 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
 	"os"
-	"os/exec"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
+	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/video"
 	"github.com/google/uuid"
 )
-
-type Stream struct {
-	Width  int `json:"width"`
-	Height int `json:"height"`
-}
-
-type FfprobeOutput struct {
-	Streams []Stream `json:"streams"`
-}
-
-// getVideoAspectRatio retrieves the aspect ratio of a video file
-func getVideoAspectRatio(filePath string) (string, error) {
-	// Prepare the ffprobe command
-	cmd := exec.Command("ffprobe", "-v", "error", "-print_format", "json", "-show_streams", filePath)
-
-	// Set up a buffer to capture the output
-	var out bytes.Buffer
-	cmd.Stdout = &out
-
-	// Run the command
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("failed to run ffprobe: %w", err)
-	}
-
-	// Unmarshal the JSON output
-	var ffprobeOutput FfprobeOutput
-	if err := json.Unmarshal(out.Bytes(), &ffprobeOutput); err != nil {
-		return "", fmt.Errorf("failed to unmarshal ffprobe output: %w", err)
-	}
-
-	// Check if we have any streams
-	if len(ffprobeOutput.Streams) == 0 {
-		return "", fmt.Errorf("no streams found in video file")
-	}
-
-	// Get the width and height of the first stream
-	width := ffprobeOutput.Streams[0].Width
-	height := ffprobeOutput.Streams[0].Height
-
-	fmt.Printf("Width: %d, Height: %d\n", width, height)
-
-	// Calculate the aspect ratio
-	if width == height {
-		return "1:1", nil // Square aspect ratio
-	}
-
-	if width/height == 16/9 {
-		return "landscape", nil
-	}
-
-	if width/height == 0 {
-		return "portrait", nil
-	}
-
-	return "other", nil
-}
-
-func processVideoForFastStart(filePath string) (string, error) {
-	outputPath := fmt.Sprintf("%s.processing.mp4", filePath)
-	err := exec.Command("ffmpeg", "-i", filePath, "-c", "copy", "-movflags", "faststart", "-f", "mp4", outputPath).Run()
-
-	if err != nil {
-		return "", fmt.Errorf("failed to process video: %w", err)
-	}
-
-	return outputPath, nil
-}
 
 func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request) {
 	uploadLimt := 1 << 30
@@ -158,7 +89,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	processedFilePath, err := processVideoForFastStart(osFile.Name())
+	processedFilePath, err := video.ProcessForFastStart(osFile.Name())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't process video", err)
 		return
@@ -172,7 +103,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 
 	defer processedFile.Close()
 
-	aspectRatio, err := getVideoAspectRatio(processedFilePath)
+	aspectRatio, err := video.GetAspectRatio(processedFilePath)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get aspect ratio", err)
 		return
