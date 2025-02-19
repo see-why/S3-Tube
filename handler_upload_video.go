@@ -120,12 +120,13 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	}
 
 	fileName := base64.RawURLEncoding.EncodeToString(bytes)
+	key := fmt.Sprintf("%s/%s.mp4", aspectRatio, fileName)
 
 	_, err = cfg.s3Client.PutObject(
 		context.TODO(),
 		&s3.PutObjectInput{
 			Bucket:      aws.String(cfg.s3Bucket),
-			Key:         aws.String(fmt.Sprintf("%s/%s.mp4", aspectRatio, fileName)),
+			Key:         aws.String(key),
 			Body:        processedFile,
 			ContentType: aws.String(mediaType),
 		})
@@ -135,7 +136,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	newUrl := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s/%s.mp4", cfg.s3Bucket, cfg.s3Region, aspectRatio, fileName)
+	newUrl := fmt.Sprintf("%s,%s", cfg.s3Bucket, key)
 	videoData.VideoURL = &newUrl
 	err = cfg.db.UpdateVideo(videoData)
 
