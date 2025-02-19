@@ -111,7 +111,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	processedFilePath, err := video.ProcessForFastStart(osFile.Name())
+	processedFilePath, err := videoUtils.ProcessForFastStart(osFile.Name())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't process video", err)
 		return
