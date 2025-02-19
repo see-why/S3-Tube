@@ -1,4 +1,4 @@
-package video
+package videoUtils
 
 import (
 	"bytes"
@@ -71,7 +71,7 @@ func ProcessForFastStart(filePath string) (string, error) {
 	return outputPath, nil
 }
 
-func generatePresignedURL(s3Client *s3.Client, bucket, key string, expireTime time.Duration) (string, error) {
+func GeneratePresignedURL(s3Client *s3.Client, bucket, key string, expireTime time.Duration) (string, error) {
 	req := &s3.PutObjectInput{
 		Bucket: &bucket,
 		Key:    &key,
