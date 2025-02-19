@@ -11,6 +11,8 @@ import (
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/database"
 	"github.com/google/uuid"
 
+	"strconv"
+
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -26,6 +28,7 @@ type apiConfig struct {
 	s3CfDistribution string
 	port             string
 	s3Client         *s3.Client
+	linkExpireTime   int
 }
 
 type thumbnail struct {
@@ -98,6 +101,16 @@ func main() {
 		log.Fatal("PORT environment variable is not set")
 	}
 
+	linkExpireTimeStr := os.Getenv("LINK_EXPIRES_IN")
+	if linkExpireTimeStr == "" {
+		log.Fatal("LINK_EXPIRES_IN environment variable is not set")
+	}
+
+	linkExpireTime, err := strconv.Atoi(linkExpireTimeStr)
+	if err != nil {
+		log.Fatalf("Invalid LINK_EXPIRES_IN value: %v", err)
+	}
+
 	cfg := apiConfig{
 		db:               db,
 		jwtSecret:        jwtSecret,
@@ -109,6 +122,7 @@ func main() {
 		s3CfDistribution: s3CfDistribution,
 		port:             port,
 		s3Client:         s3Client,
+		linkExpireTime:   linkExpireTime,
 	}
 
 	err = cfg.ensureAssetsDir()
