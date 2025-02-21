@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -30,7 +29,6 @@ func (cfg *apiConfig) dbVideoToSignedVideo(video database.Video) (database.Video
 		return video, fmt.Errorf("invalid video URL")
 	}
 
-	presignedUrl, err := videoUtils.GeneratePresignedURL(cfg.s3Client, bucketKey[0], bucketKey[1], time.Duration(cfg.linkExpireTime))
 	if err != nil {
 		return video, fmt.Errorf("failed to generate presigned URL: %w", err)
 	}

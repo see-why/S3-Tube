@@ -2,13 +2,9 @@ package videoUtils
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
-	"time"
-
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type Stream struct {
@@ -69,20 +65,4 @@ func ProcessForFastStart(filePath string) (string, error) {
 	}
 
 	return outputPath, nil
-}
-
-func GeneratePresignedURL(s3Client *s3.Client, bucket, key string, expireTime time.Duration) (string, error) {
-	req := &s3.PutObjectInput{
-		Bucket: &bucket,
-		Key:    &key,
-	}
-
-	presignClient := s3.NewPresignClient(s3Client)
-
-	url, err := presignClient.PresignPutObject(context.TODO(), req, s3.WithPresignExpires(expireTime))
-	if err != nil {
-		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
-	}
-
-	return url.URL, nil
 }
