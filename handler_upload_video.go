@@ -9,34 +9,13 @@ import (
 	"mime"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
-	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/database"
 	videoUtils "github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/video"
 	"github.com/google/uuid"
 )
-
-func (cfg *apiConfig) dbVideoToSignedVideo(video database.Video) (database.Video, error) {
-	if video.VideoURL == nil {
-		return video, fmt.Errorf("video URL is nil")
-	}
-
-	bucketKey := strings.Split(*video.VideoURL, ",")
-	if len(bucketKey) != 2 {
-		return video, fmt.Errorf("invalid video URL")
-	}
-
-	if err != nil {
-		return video, fmt.Errorf("failed to generate presigned URL: %w", err)
-	}
-
-	video.VideoURL = &presignedUrl
-
-	return video, nil
-}
 
 func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request) {
 	uploadLimt := 1 << 30
@@ -157,7 +136,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	videoData, err = cfg.dbVideoToSignedVideo(videoData)
+	videoData, err = videoData.SetVideoURL(key)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't convert video data", err)
 		return
