@@ -136,11 +136,8 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	videoData, err = videoData.SetVideoURL(key)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't convert video data", err)
-		return
-	}
+	videoUrl := fmt.Sprintf("%s/%s", cfg.s3CfDistribution, key)
+	videoData.VideoURL = &videoUrl
 
 	err = cfg.db.UpdateVideo(videoData)
 
