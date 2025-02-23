@@ -5,3 +5,4 @@ assets/
 samples/
 tmp/main
 tmp/build-errors.log
+.DS_Store
