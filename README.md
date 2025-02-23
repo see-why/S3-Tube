@@ -1,6 +1,6 @@
 # S3-Tube
 
-This repo contains the starter code for the Tubely application - the #1 tool for engagement bait - for the "Learn File Servers and CDNs with S3 and CloudFront" [course](https://www.boot.dev/courses/learn-file-servers-s3-cloudfront-golang) on [boot.dev](https://www.boot.dev)
+This repo contains logic to upload video data to an s3 bucket and store it's meta data in an sqlite database.
 
 ## Quickstart
 
